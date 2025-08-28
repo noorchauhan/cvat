@@ -6,6 +6,7 @@ metadata:
     type: detector
     spec: |
       [
+        { "id": 10, "name": "unclassified", "type": "rectangle" },
         { "id": 0, "name": "bands", "type": "rectangle" },
         { "id": 1, "name": "basophils", "type": "rectangle" },
         { "id": 2, "name": "blasts", "type": "rectangle" },
@@ -16,7 +17,6 @@ metadata:
         { "id": 7, "name": "myelocytes", "type": "rectangle" },
         { "id": 8, "name": "neutrophils", "type": "rectangle" },
         { "id": 9, "name": "promyelocytes", "type": "rectangle" },
-        { "id": 10, "name": "unclassified", "type": "rectangle" },
         { "id": 11, "name": "smudge_cell", "type": "rectangle" },
         { "id": 12, "name": "nucleated_RBC", "type": "rectangle" }
       ]
