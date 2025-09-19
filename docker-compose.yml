@@ -93,7 +93,7 @@ services:
       DJANGO_MODWSGI_EXTRA_ARGS: ''
       ALLOWED_HOSTS: '*'
       ADAPTIVE_AUTO_ANNOTATION: 'false'
-      NUMPROCS: 2
+      NUMPROCS: 4
       CVAT_ANALYTICS: 1
       CVAT_BASE_URL:
       ONE_RUNNING_JOB_IN_QUEUE_PER_USER:
@@ -123,7 +123,7 @@ services:
     environment:
       <<: *backend-env
       CVAT_REDIS_INMEM_PASSWORD: ''
-      NUMPROCS: 1
+      NUMPROCS: 4
     command: run worker notifications cleaning
     volumes:
       - cvat_data:/home/django/data
@@ -139,7 +139,7 @@ services:
     depends_on: *backend-deps
     environment:
       <<: *backend-env
-      NUMPROCS: 2
+      NUMPROCS: 4
     command: run worker import
     volumes:
       - cvat_data:/home/django/data
@@ -155,7 +155,7 @@ services:
     depends_on: *backend-deps
     environment:
       <<: [*backend-env, *clickhouse-env]
-      NUMPROCS: 2
+      NUMPROCS: 4
     command: run worker export
     volumes:
       - cvat_data:/home/django/data
@@ -171,7 +171,7 @@ services:
     depends_on: *backend-deps
     environment:
       <<: *backend-env
-      NUMPROCS: 1
+      NUMPROCS: 4
     command: run worker annotation
     volumes:
       - cvat_data:/home/django/data
