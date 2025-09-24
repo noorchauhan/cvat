@@ -67,3 +67,11 @@ cvat-ui/dist
 # produced by allure report
 /**/allure-report*
 /**/allure-results*
+
+# Ignore Ml models
+
+/serverless/pytorch/WBC_5c/best.pt
+/serverless/pytorch/WBC_10c/best_train2_10class_yolov121920L_16may2025.pt
+/serverless/pytorch/WBC_10c/best.pt
+/serverless/PLT_torch/Final_PLT_Only_Platelet_p10_BEST.pt
+/serverless/pytorch/PLT_Agg_Giant/PLT_2400-1280_agg_giant_aug_b4_n_70-30_fold_4_best.pt
