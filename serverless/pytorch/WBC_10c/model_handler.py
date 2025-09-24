@@ -8,9 +8,7 @@ class ModelHandler:
         self.logger = logger
         self.model_path = model_path
         self.input_size = 1920
-        self.logger.info(f"Loading Ultralytics YOLO model from {self.model_path}...")
         self.model = YOLO(self.model_path)
-        self.logger.info("Ultralytics YOLO model loaded successfully.")
 
 
     def infer(self, image_pil: Image, threshold: float):

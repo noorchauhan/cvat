@@ -5,7 +5,6 @@ import traceback
 from PIL import Image
 from model_handler import ModelHandler
 
-# Updated labels for the new WBC model
 CLASS_NAMES = {
     0: "basophils",
     1: "eosinophils",
@@ -16,16 +15,13 @@ CLASS_NAMES = {
 }
 
 def init_context(context):
-    context.logger.info("Initializing WBC PyTorch context...")
     model_path = "/opt/nuclio/best.pt"
     model = ModelHandler(model_path, CLASS_NAMES, context.logger)
     context.user_data.model = model
-    context.logger.info("WBC PyTorch context initialization complete.")
 
 
 def handler(context, event):
     try:
-        context.logger.info("Handling new request...")
         data = event.body
         buf = io.BytesIO(base64.b64decode(data["image"]))
         threshold = float(data.get("threshold", 0.35))
