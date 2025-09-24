@@ -17,13 +17,9 @@ CLASS_NAMES = {
 
 def init_context(context):
     context.logger.info("Initializing WBC PyTorch context...")
-
-    # Ensure your WBC model file is named 'best.pt'
     model_path = "/opt/nuclio/best.pt"
-
     model = ModelHandler(model_path, CLASS_NAMES, context.logger)
     context.user_data.model = model
-
     context.logger.info("WBC PyTorch context initialization complete.")
 
 
@@ -32,14 +28,10 @@ def handler(context, event):
         context.logger.info("Handling new request...")
         data = event.body
         buf = io.BytesIO(base64.b64decode(data["image"]))
-
         threshold = float(data.get("threshold", 0.35))
         context.logger.info(f"Using confidence threshold: {threshold}")
-
         image = Image.open(buf).convert("RGB")
-
         results = context.user_data.model.infer(image, threshold)
-
         return context.Response(body=json.dumps(results), headers={},
             content_type='application/json', status_code=200)
 

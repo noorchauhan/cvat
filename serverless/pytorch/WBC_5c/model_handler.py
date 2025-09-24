@@ -8,28 +8,18 @@ class ModelHandler:
         self.logger = logger
         self.model_path = model_path
         self.input_size = 1920
-
         self.logger.info(f"Loading Ultralytics YOLO model from {self.model_path}...")
         self.model = YOLO(self.model_path)
         self.logger.info("Ultralytics YOLO model loaded successfully.")
 
-
     def infer(self, image_pil: Image, threshold: float):
-
-        # The YOLO object handles all preprocessing (including resizing) and post-processing.
-        image_results = self.model(image_pil, conf=threshold, iou=0.45, imgsz=self.input_size, verbose=False)
-
+        image_results = self.model(image_pil, conf=threshold, agnostic_nms=True, imgsz=self.input_size, verbose=False)
         self.logger.info(f"Model returned {len(image_results[0].boxes)} detections.")
-
         results = []
 
-        # The result object contains final, scaled bounding boxes.
-        # The format is [x1, y1, x2, y2, confidence, class_id]
         for bbox in image_results[0].boxes.data.tolist():
             x1, y1, x2, y2, confidence, class_id = bbox
-
             predicted_class_id = int(class_id)
-
             if predicted_class_id in self.labels:
                 results.append({
                     "confidence": f"{confidence:.2f}",
