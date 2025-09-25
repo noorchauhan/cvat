@@ -68,10 +68,5 @@ cvat-ui/dist
 /**/allure-report*
 /**/allure-results*
 
-# Ignore Ml models
-
-/serverless/pytorch/WBC_5c/*
-/serverless/pytorch/WBC_10c/*
-/serverless/pytorch/WBC_10c/*
-/serverless/PLT_torch/*
-/serverless/pytorch/PLT_Agg_Giant/*
+# Ignore entire serverless directory
+/serverless/  
