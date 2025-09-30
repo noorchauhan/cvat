@@ -69,4 +69,4 @@ cvat-ui/dist
 /**/allure-results*
 
 # Ignore entire serverless directory
-/serverless/  
+/serverless/pytorch/
