@@ -5,7 +5,6 @@ import traceback
 from PIL import Image
 from model_handler import ModelHandler
 
-# Updated labels for the new model
 CLASS_NAMES = {
     0: "RBC",
     1: "reticulocyte"
@@ -13,18 +12,18 @@ CLASS_NAMES = {
 
 def init_context(context):
     context.logger.info("Initializing RBC/Retic PyTorch context...")
-    model_path = "/opt/nuclio/best.pt" # add your model name here for example best.pt
+    model_path = "/opt/nuclio/best.pt"      # Enter your model name .pt file, keep it in the same directory
     model = ModelHandler(model_path, CLASS_NAMES, context.logger)
     context.user_data.model = model
     context.logger.info("RBC/Retic PyTorch context initialization complete.")
 
-
 def handler(context, event):
     try:
+        context.logger.info("Handling new request...")
         data = event.body
         buf = io.BytesIO(base64.b64decode(data["image"]))
-        threshold = float(data.get("threshold", 0.25))
-        image = Image.open(buf).convert("RGB")
+        threshold = float(data.get("threshold", 0.35))
+        image = Image.open(buf).convert("RGB") # You can adjust the preprocessing here according to your suite
         results = context.user_data.model.infer(image, threshold)
         return context.Response(body=json.dumps(results), headers={},
             content_type='application/json', status_code=200)
