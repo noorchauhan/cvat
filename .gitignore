@@ -68,5 +68,5 @@ cvat-ui/dist
 /**/allure-report*
 /**/allure-results*
 
-# Ignore entire serverless directory
-/serverless/pytorch/
+# Ignore PyTorch model files
+**/*.pt
