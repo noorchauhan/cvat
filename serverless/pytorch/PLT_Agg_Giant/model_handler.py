@@ -9,7 +9,6 @@ class ModelHandler:
         self.model_path = model_path
         self.model = YOLO(self.model_path)
         self.model.to('cuda') 
-        self.logger.info("Model loaded on GPU")
 
     def infer(self, image_pil: Image, threshold: float):
         image_results = self.model(image_pil, conf=threshold, agnostic_nms=True, verbose=False)
@@ -33,7 +32,6 @@ class ModelHandler:
     def unload(self):
         import torch
         if torch.cuda.is_available():
-            self.logger.info("Unloading model from GPU memory.")
             torch.cuda.empty_cache()
             import gc
             gc.collect()

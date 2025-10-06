@@ -32,7 +32,7 @@ def handler(context, event):
             return context.Response(body=json.dumps(results), headers={},
                 content_type='application/json', status_code=200)
         except Exception as e:
-            context.user_data.model.unload()  # Ensure GPU is cleared even on error
+            context.user_data.model.unload()
             raise
 
     except Exception:

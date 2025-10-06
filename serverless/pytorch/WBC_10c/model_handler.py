@@ -7,7 +7,7 @@ class ModelHandler:
         self.labels = labels
         self.logger = logger
         self.model_path = model_path
-        self.input_size = 1920
+        self.input_size = 1920 # Adjust input size as needed
         self.model = YOLO(self.model_path)
         self.model.to('cuda')
         self.logger.info("Model loaded on GPU")

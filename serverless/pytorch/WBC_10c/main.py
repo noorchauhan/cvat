@@ -21,7 +21,7 @@ CLASS_NAMES = {
 
 def init_context(context):
     context.logger.info("Initializing WBC 10c PyTorch context...")
-    model_path = "/opt/nuclio/best_train2_10class_yolov121920L_16may2025.pt"
+    model_path = "/opt/nuclio/best_train2_10class_yolov121920L_16may2025.pt" # add your model name here for example best.pt
     model = ModelHandler(model_path, CLASS_NAMES, context.logger)
     context.user_data.model = model
 
