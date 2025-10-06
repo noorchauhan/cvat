@@ -23,7 +23,6 @@ spec:
     baseImage: nvidia/cuda:12.3.2-cudnn9-devel-ubuntu22.04
     commands:
       - apt-get update && apt-get install -y --no-install-recommends python3.10 python3-pip python-is-python3 libgl1 libglib2.0-0
-      # Install all required libraries, including ultralytics
       - pip install numpy opencv-python Pillow ultralytics
       - pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
