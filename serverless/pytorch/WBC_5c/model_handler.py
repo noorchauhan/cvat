@@ -10,7 +10,7 @@ class ModelHandler:
         self.model_path = model_path
         self.input_size = 1920
         self.model = YOLO(self.model_path)
-        self.model.to('cuda')  # Move model to GPU
+        self.model.to('cuda')
         self.logger.info("Model loaded on GPU")
 
     def infer(self, image_pil: Image, threshold: float):
