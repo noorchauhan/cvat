@@ -27,7 +27,15 @@ from pottery import Redlock
 
 
 def current_function_name(depth=1):
-    return inspect.getouterframes(inspect.currentframe())[depth].function
+    frame = inspect.currentframe()
+    if frame is None:
+        return "[unknown]"
+
+    for _ in range(depth):
+        frame = frame.f_back
+        assert frame is not None, "not enough stack frames"
+
+    return frame.f_code.co_name
 
 
 def make_zip_archive(src_path, dst_path):
@@ -272,6 +280,7 @@ class ExportCacheManager:
         instance_type: str,
         instance_id: int,
         instance_timestamp: float,
+        lightweight: bool,
     ) -> str:
         instance_type = InstanceType(instance_type.lower())
         filename = cls.FILE_NAME_TEMPLATE_WITH_INSTANCE.format(
@@ -279,7 +288,7 @@ class ExportCacheManager:
             instance_id=instance_id,
             file_type=ExportFileType.BACKUP,
             instance_timestamp=instance_timestamp,
-            optional_suffix="",
+            optional_suffix=cls.SPLITTER + "lightweight" if lightweight else "",
             file_ext="zip",
         )
         return osp.join(cls.ROOT, filename)
@@ -335,6 +344,11 @@ class ExportCacheManager:
                 # The "format" is a part of file id, but there is actually
                 # no need to use it after filename parsing, so just drop it.
                 instance_timestamp, _ = unparsed.split(cls.SPLITTER, maxsplit=1)
+            elif fragments["file_type"] == ExportFileType.BACKUP:
+                # Backup filename may have "lightweight" suffix
+                split_unparsed = unparsed.split(cls.SPLITTER, maxsplit=1)
+                if len(split_unparsed) > 1:
+                    instance_timestamp, _ = split_unparsed
 
             parsed_file_name = ParsedExportFilename(
                 file_type=fragments.pop("file_type"),

@@ -5,6 +5,8 @@
 
 /// <reference types="cypress" />
 
+import { convertClasses } from './utils';
+
 function openOrganizationsMenu() {
     cy.get('.cvat-header-menu-user-dropdown')
         .should('exist').and('be.visible').click();
@@ -163,20 +165,22 @@ Cypress.Commands.add('inviteMembersToOrganization', (members) => {
 Cypress.Commands.add('removeMemberFromOrganization', (username) => {
     cy.contains('.cvat-organization-member-item-username', username)
         .parents('.cvat-organization-member-item')
-        .find('.cvat-organization-member-item-remove')
+        .find('.cvat-organization-actions-button')
+        .click();
+    cy.get('.cvat-organization-membership-actions-menu')
+        .should('exist')
+        .and('be.visible')
+        .contains('Delete')
         .click();
     cy.get('.cvat-modal-organization-member-remove')
         .contains('button', 'Yes, remove')
         .click();
 });
 
-Cypress.Commands.add('headlessCreateOrganization', (data = {}) => {
-    cy.window().then(async ($win) => {
-        const organization = new $win.cvat.classes.Organization({ ...data });
-        const result = await organization.save();
-        return cy.wrap(result);
-    });
-});
+Cypress.Commands.add('headlessCreateOrganization', (data = {}) => cy.window().then(($win) => {
+    const organization = new $win.cvat.classes.Organization(convertClasses(data, $win));
+    return cy.wrap(organization.save());
+}));
 
 Cypress.Commands.add('headlessDeleteOrganization', (orgId) => {
     cy.window().then(($win) => cy.wrap($win.cvat.organizations.get({

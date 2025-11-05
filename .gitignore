@@ -50,6 +50,7 @@ yarn-error.log*
 node_modules
 /*env*/
 /.*env*
+perfkit.egg-info/
 
 # Ignore all js dists
 cvat-data/dist
@@ -68,5 +69,16 @@ cvat-ui/dist
 /**/allure-report*
 /**/allure-results*
 
+<<<<<<< HEAD
 # Ignore PyTorch model files
 **/*.pt
+=======
+# https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
+**/.pnp.*
+**/.yarn/*
+**/!.yarn/patches
+**/!.yarn/plugins
+**/!.yarn/releases
+**/!.yarn/sdks
+**/!.yarn/versions
+>>>>>>> c174af38461adea0d6a7ab625dc31b44bd7aca4b

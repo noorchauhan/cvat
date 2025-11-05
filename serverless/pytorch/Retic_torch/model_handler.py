@@ -14,7 +14,7 @@ class ModelHandler:
 
 
     def infer(self, image_pil: Image, threshold: float):
-        image_results = self.model(image_pil, conf=threshold, imgsz=self.input_size, agnostic_nms=True, verbose=False)
+        image_results = self.model(image_pil, conf=threshold, imgsz=self.input_size, agnostic_nms=True, verbose=False, max_det=1000)
         self.logger.info(f"Model returned {len(image_results[0].boxes)} detections.")
 
         results = []

@@ -20,7 +20,6 @@ from typing import Any, Callable, Generic, Optional, TypeVar, Union, overload
 import av
 import cv2
 import numpy as np
-from django.conf import settings
 from django.db.models import prefetch_related_objects
 from PIL import Image
 from rest_framework.exceptions import ValidationError
@@ -455,6 +454,17 @@ class TaskFrameProvider(IFrameProvider):
 
         return provider
 
+    def invalidate_chunks(self, *, quality: FrameQuality = FrameQuality.ORIGINAL):
+        cache = MediaCache()
+
+        number_of_chanks = math.ceil(self._db_task.data.size / self._db_task.data.chunk_size)
+        for chunk_number in range(number_of_chanks):
+            cache.remove_task_chunk(self._db_task, chunk_number, quality=quality)
+
+        for segment in self._db_task.segment_set.all():
+            segment_frame_provider = SegmentFrameProvider(segment)
+            segment_frame_provider.invalidate_chunks(quality=quality)
+
 
 class SegmentFrameProvider(IFrameProvider):
     def __init__(self, db_segment: models.Segment) -> None:
@@ -478,8 +488,8 @@ class SegmentFrameProvider(IFrameProvider):
 
         self._loaders: dict[FrameQuality, _ChunkLoader] = {}
         if (
-            db_data.storage_method == models.StorageMethodChoice.CACHE
-            or not settings.MEDIA_CACHE_ALLOW_STATIC_CACHE
+            db_data.storage_method
+            == models.StorageMethodChoice.CACHE
             # TODO: separate handling, extract cache creation logic from media cache
         ):
             cache = MediaCache()
@@ -582,6 +592,19 @@ class SegmentFrameProvider(IFrameProvider):
         chunk_number = self.validate_chunk_number(chunk_number)
         chunk_data, mime = self._loaders[quality].read_chunk(chunk_number)
         return DataWithMeta[BytesIO](chunk_data, mime=mime)
+
+    def invalidate_chunks(self, *, quality: FrameQuality = FrameQuality.ORIGINAL):
+        cache = MediaCache()
+        cache.remove_segment_preview(self._db_segment)
+        number_of_chunks = math.ceil(
+            self._db_segment.frame_count / self._db_segment.task.data.chunk_size
+        )
+        cache.remove_segments_chunks(
+            [
+                {"db_segment": self._db_segment, "chunk_number": chunk_id, "quality": quality}
+                for chunk_id in range(number_of_chunks)
+            ]
+        )
 
     def _get_raw_frame(
         self,

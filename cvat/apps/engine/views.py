@@ -41,7 +41,7 @@ from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rq.job import Job as RQJob
@@ -58,6 +58,7 @@ from cvat.apps.engine.cache import (
     MediaCache,
 )
 from cvat.apps.engine.cloud_provider import db_storage_to_storage_instance
+from cvat.apps.engine.exceptions import CloudStorageMissingError
 from cvat.apps.engine.frame_provider import (
     DataWithMeta,
     FrameQuality,
@@ -92,10 +93,12 @@ from cvat.apps.engine.permissions import (
     AnnotationGuidePermission,
     CloudStoragePermission,
     CommentPermission,
+    GuideAssetPermission,
     IssuePermission,
     JobPermission,
     LabelPermission,
     ProjectPermission,
+    ServerPermission,
     TaskPermission,
     UserPermission,
     get_iam_context,
@@ -149,7 +152,7 @@ from cvat.apps.engine.view_utils import (
     tus_chunk_action,
 )
 from cvat.apps.iam.filters import ORGANIZATION_OPEN_API_PARAMETERS
-from cvat.apps.iam.permissions import IsAuthenticatedOrReadPublicResource, PolicyEnforcer
+from cvat.apps.iam.permissions import IsAuthenticatedOrReadPublicResource
 from cvat.apps.redis_handler.serializers import RqIdSerializer
 from utils.dataset_manifest import ImageManifestManager
 
@@ -169,6 +172,7 @@ _RETRY_AFTER_TIMEOUT = 10
 class ServerViewSet(viewsets.ViewSet):
     serializer_class = None
     iam_organization_field = None
+    iam_permission_class = ServerPermission
 
     # To get nice documentation about ServerViewSet actions it is necessary
     # to implement the method. By default, ViewSet doesn't provide it.
@@ -329,6 +333,7 @@ class ProjectViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ordering = "-id"
     lookup_fields = {'owner': 'owner__username', 'assignee': 'assignee__username'}
     iam_organization_field = 'organization'
+    iam_permission_class = ProjectPermission
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -586,6 +591,11 @@ class _DataGetter(metaclass=ABCMeta):
                 data=str(ex),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        except CloudStorageMissingError as ex:
+            return Response(
+                data=str(ex),
+                status=status.HTTP_409_CONFLICT,
+            )
 
     @abstractmethod
     def _get_chunk_response_headers(self, chunk_data: DataWithMeta) -> dict[str, str]: ...
@@ -694,6 +704,11 @@ class _JobDataGetter(_DataGetter):
                     data=str(ex),
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
+            except CloudStorageMissingError as ex:
+                return Response(
+                    data=str(ex),
+                    status=status.HTTP_409_CONFLICT,
+                )
         else:
             return super().__call__()
 
@@ -735,6 +750,86 @@ class _JobDataGetter(_DataGetter):
         }),
     partial_update=extend_schema(
         summary='Update a task',
+        examples=[
+            OpenApiExample(
+                "Update task properties",
+                value={
+                    "name": "string",
+                    "owner_id": 0,
+                    "assignee_id": 0,
+                    "bug_tracker": "string",
+                    "subset": "string",
+                    "target_storage": {
+                        "location": "cloud_storage",
+                        "cloud_storage_id": 0
+                    },
+                    "source_storage": {
+                        "location": "cloud_storage",
+                        "cloud_storage_id": 0
+                    }
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Update task labels",
+                value={
+                    "labels": [
+                        {
+                            "name": "string",
+                            "color": "string",
+                            "attributes": [],
+                            "deleted": False,
+                            "type": "any",
+                            "svg": "string",
+                            "sublabels": [{
+                                "name": "string",
+                                "color": "string",
+                                "attributes": [],
+                                "type": "any",
+                                "has_parent": True
+                            }],
+                        }
+                    ],
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Move task to a project",
+                value={
+                    "project_id": 0,
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Transfer task to personal sandbox",
+                value={
+                    "organization_id": None,
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Transfer task to organization",
+                value={
+                    "organization_id": 1,
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Transfer a storage linked task to an organization and detach storages",
+                value={
+                    "organization_id": 1,
+                    "source_storage": {
+                        "location": models.Location.LOCAL,
+                        "cloud_storage_id": None,
+                    },
+                    "target_storage": {
+                        "location": models.Location.LOCAL,
+                        "cloud_storage_id": None,
+                    },
+                },
+                request_only=True,
+            )
+        ],
         request=TaskWriteSerializer(partial=True),
         responses={
             '200': TaskReadSerializer, # check TaskWriteSerializer.to_representation
@@ -780,6 +875,7 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ordering_fields = list(filter_fields)
     ordering = "-id"
     iam_organization_field = 'organization'
+    iam_permission_class = TaskPermission
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -1567,6 +1663,7 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
     )
 
     iam_organization_field = 'segment__task__organization'
+    iam_permission_class = JobPermission
     search_fields = ('task_name', 'project_name', 'assignee', 'state', 'stage')
     filter_fields = list(search_fields) + [
         'id', 'task_id', 'project_id', 'updated_date', 'dimension', 'type', 'parent_job_id',
@@ -2036,6 +2133,7 @@ class IssueViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ).all()
 
     iam_organization_field = 'job__segment__task__organization'
+    iam_permission_class = IssuePermission
     search_fields = ('owner', 'assignee')
     filter_fields = list(search_fields) + ['id', 'job_id', 'task_id', 'resolved', 'frame_id']
     simple_filters = list(search_fields) + ['job_id', 'task_id', 'resolved', 'frame_id']
@@ -2107,6 +2205,7 @@ class CommentViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ).all()
 
     iam_organization_field = 'issue__job__segment__task__organization'
+    iam_permission_class = CommentPermission
     search_fields = ('owner',)
     filter_fields = list(search_fields) + ['id', 'issue_id', 'frame_id', 'job_id']
     simple_filters = list(search_fields) + ['issue_id', 'frame_id', 'job_id']
@@ -2191,6 +2290,7 @@ class LabelViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ).all()
 
     iam_organization_field = ('task__organization', 'project__organization')
+    iam_permission_class = LabelPermission
 
     search_fields = ('name', 'parent')
     filter_fields = list(search_fields) + ['id', 'type', 'color', 'parent_id']
@@ -2335,6 +2435,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     mixins.RetrieveModelMixin, PartialUpdateModelMixin, mixins.DestroyModelMixin):
     queryset = User.objects.prefetch_related('groups').all()
     iam_organization_field = 'memberships__organization'
+    iam_permission_class = UserPermission
 
     search_fields = ('username', 'first_name', 'last_name')
     filter_fields = list(search_fields) + ['id', 'is_active']
@@ -2428,6 +2529,7 @@ class CloudStorageViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ordering = "-id"
     lookup_fields = {'owner': 'owner__username', 'name': 'display_name'}
     iam_organization_field = 'organization'
+    iam_permission_class = CloudStoragePermission
 
     # Multipart support is necessary here, as CloudStorageWriteSerializer
     # contains a file field (key_file).
@@ -2661,14 +2763,20 @@ class AssetsViewSet(
     parser_classes = [MultiPartParser]
     search_fields = ()
     ordering = "uuid"
+    iam_permission_class = GuideAssetPermission
 
     def check_object_permissions(self, request: ExtendedRequest, obj):
         super().check_object_permissions(request, obj.guide)
 
     def get_permissions(self):
+        permissions = super().get_permissions()
+
         if self.action == 'retrieve':
-            return [IsAuthenticatedOrReadPublicResource(), PolicyEnforcer()]
-        return super().get_permissions()
+            permissions = [IsAuthenticatedOrReadPublicResource()] + [
+                p for p in permissions if not isinstance(p, IsAuthenticated)
+            ]
+
+        return permissions
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -2741,6 +2849,7 @@ class AnnotationGuidesViewSet(
     search_fields = ()
     ordering = "-id"
     iam_organization_field = None
+    iam_permission_class = AnnotationGuidePermission
 
     def _update_related_assets(self, request: ExtendedRequest, guide: AnnotationGuide):
         existing_assets = list(guide.assets.all())

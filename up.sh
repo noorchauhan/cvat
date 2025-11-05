@@ -1,2 +1,3 @@
+export CVAT_HOST=cvat.intranet.micalys.com
 docker compose -f docker-compose.yml -f components/serverless/docker-compose.serverless.yml up --build -d
 cd serverless && ./deploy_gpu.sh
