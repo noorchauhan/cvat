@@ -29,6 +29,7 @@ import {
     Dumper, ProjectOrTaskOrJob, Job, Project,
     Storage, StorageData, StorageLocation, Task,
 } from 'cvat-core-wrapper';
+import { cloudStoragesActions } from 'actions/cloud-storage-actions';
 
 type FormValues = {
     selectedFormat: string | undefined;
@@ -39,8 +40,8 @@ type FormValues = {
 };
 
 const initialValues: FormValues = {
-    selectedFormat: undefined,
-    saveImages: false,
+    selectedFormat: 'PASCAL VOC 1.1',
+    saveImages: true,
     customName: undefined,
     targetStorage: {
         location: StorageLocation.LOCAL,
@@ -129,7 +130,7 @@ function ExportDatasetModal(props: Readonly<StateToProps>): JSX.Element {
             if (instance.mode === 'interpolation' && instance.dimension === '2d') {
                 form.setFieldsValue({ selectedFormat: 'CVAT for video 1.1' });
             } else if (instance.mode === 'annotation' && instance.dimension === '2d') {
-                form.setFieldsValue({ selectedFormat: 'CVAT for images 1.1' });
+                form.setFieldsValue({ selectedFormat: 'PASCAL VOC 1.1' });
             }
         }
         setNameTemplate(`dataset_${newInstanceType}_{{id}}`);
@@ -252,6 +253,7 @@ function ExportDatasetModal(props: Readonly<StateToProps>): JSX.Element {
 
     const sortedDumpers = dumpers.slice();
     sortedDumpers.sort((a: Dumper, b: Dumper) => a.name.localeCompare(b.name));
+    console.log('sortedDumpers', sortedDumpers);
 
     return (
         <Modal
